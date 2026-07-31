@@ -1,0 +1,16 @@
+{
+  "corpus_entities_total": 8024,
+  "candidate_triples_total": 48566,
+  "entities_with_at_least_one_edge": 6325,
+  "single_occurrence_share_pct": 80.35,
+  "core_entities": 1905,
+  "core_triples": 9544,
+  "core_largest_component_pct": 99.48,
+  "core_components": 6,
+  "core_mean_degree": 10.02,
+  "core_density": 0.002631,
+  "core_degree_skewness": 4.79,
+  "core_clustering": 0.0093,
+  "type_violations_all_thresholds": 0,
+  "duplicate_triples_all_thresholds": 0
+}

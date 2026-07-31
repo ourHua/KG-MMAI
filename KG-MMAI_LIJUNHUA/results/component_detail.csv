@@ -1,0 +1,7 @@
+component,nodes,share_pct,edges,types_present,example_entities
+1,1895,99.475,9539,CAU/EFF/HER/PRE/SYM,"脉细数, 甘草, 茯苓"
+2,2,0.105,1,CAU/SYM,"风痰, 黑睛猝然偏斜"
+3,2,0.105,1,HER/PRE,"异功散, 五味"
+4,2,0.105,1,CAU/SYM,"肺虚, 喉燥"
+5,2,0.105,1,CAU/SYM,"脉乍紧者, 手足厥冷"
+6,2,0.105,1,CAU/SYM,"六脉弦紧, 红肿烂斑大痛"

@@ -1,0 +1,488 @@
+{
+  "samples": 6199,
+  "unique_nodes": 8024,
+  "unique_core_nodes": 1905,
+  "unique_edges": 48566,
+  "unique_core_edges": 9544,
+  "node_type_counts": {
+    "CAU": 1253,
+    "EFF": 601,
+    "HER": 625,
+    "PRE": 928,
+    "SYM": 4617
+  },
+  "top_nodes_by_type": {
+    "SYM": [
+      {
+        "name": "发热",
+        "count": 380
+      },
+      {
+        "name": "舌红",
+        "count": 275
+      },
+      {
+        "name": "头痛",
+        "count": 257
+      },
+      {
+        "name": "口渴",
+        "count": 233
+      },
+      {
+        "name": "腹痛",
+        "count": 210
+      },
+      {
+        "name": "舌质红",
+        "count": 207
+      },
+      {
+        "name": "舌淡",
+        "count": 204
+      },
+      {
+        "name": "苔白",
+        "count": 194
+      },
+      {
+        "name": "苔薄白",
+        "count": 191
+      },
+      {
+        "name": "苔黄",
+        "count": 189
+      }
+    ],
+    "CAU": [
+      {
+        "name": "脉弦",
+        "count": 128
+      },
+      {
+        "name": "脉细数",
+        "count": 127
+      },
+      {
+        "name": "脉沉细",
+        "count": 111
+      },
+      {
+        "name": "脉滑数",
+        "count": 84
+      },
+      {
+        "name": "脉弦数",
+        "count": 75
+      },
+      {
+        "name": "脉细",
+        "count": 72
+      },
+      {
+        "name": "脉沉",
+        "count": 70
+      },
+      {
+        "name": "脉数",
+        "count": 69
+      },
+      {
+        "name": "脉浮",
+        "count": 69
+      },
+      {
+        "name": "气虚",
+        "count": 67
+      }
+    ],
+    "HER": [
+      {
+        "name": "甘草",
+        "count": 370
+      },
+      {
+        "name": "茯苓",
+        "count": 320
+      },
+      {
+        "name": "当归",
+        "count": 250
+      },
+      {
+        "name": "白术",
+        "count": 210
+      },
+      {
+        "name": "黄芩",
+        "count": 199
+      },
+      {
+        "name": "柴胡",
+        "count": 165
+      },
+      {
+        "name": "白芍",
+        "count": 163
+      },
+      {
+        "name": "黄连",
+        "count": 163
+      },
+      {
+        "name": "黄芪",
+        "count": 157
+      },
+      {
+        "name": "人参",
+        "count": 152
+      }
+    ],
+    "PRE": [
+      {
+        "name": "补中益气汤",
+        "count": 70
+      },
+      {
+        "name": "苍术",
+        "count": 62
+      },
+      {
+        "name": "六君子汤",
+        "count": 61
+      },
+      {
+        "name": "二陈汤",
+        "count": 59
+      },
+      {
+        "name": "四物汤",
+        "count": 51
+      },
+      {
+        "name": "五苓散",
+        "count": 49
+      },
+      {
+        "name": "逍遥散",
+        "count": 47
+      },
+      {
+        "name": "理中汤",
+        "count": 38
+      },
+      {
+        "name": "龙胆泻肝汤",
+        "count": 38
+      },
+      {
+        "name": "八珍汤",
+        "count": 35
+      }
+    ],
+    "EFF": [
+      {
+        "name": "清热",
+        "count": 198
+      },
+      {
+        "name": "健脾",
+        "count": 83
+      },
+      {
+        "name": "益气",
+        "count": 77
+      },
+      {
+        "name": "补肾",
+        "count": 53
+      },
+      {
+        "name": "活血化瘀",
+        "count": 52
+      },
+      {
+        "name": "清热解毒",
+        "count": 46
+      },
+      {
+        "name": "滋阴",
+        "count": 41
+      },
+      {
+        "name": "补气",
+        "count": 31
+      },
+      {
+        "name": "止血",
+        "count": 30
+      },
+      {
+        "name": "健脾益气",
+        "count": 25
+      }
+    ]
+  },
+  "top_edges_by_relation": {
+    "CAUSES": [
+      {
+        "source": "脉细数",
+        "target": "舌红",
+        "weight": 55
+      },
+      {
+        "source": "脉浮",
+        "target": "发热",
+        "weight": 41
+      },
+      {
+        "source": "脉弦数",
+        "target": "苔黄",
+        "weight": 38
+      },
+      {
+        "source": "脉沉细",
+        "target": "肢冷",
+        "weight": 37
+      },
+      {
+        "source": "脉滑数",
+        "target": "口渴",
+        "weight": 37
+      },
+      {
+        "source": "脉滑数",
+        "target": "舌质红",
+        "weight": 37
+      },
+      {
+        "source": "脉滑数",
+        "target": "苔黄",
+        "weight": 37
+      },
+      {
+        "source": "脉细数",
+        "target": "盗汗",
+        "weight": 35
+      },
+      {
+        "source": "脉弦",
+        "target": "苔薄白",
+        "weight": 33
+      },
+      {
+        "source": "脉弦数",
+        "target": "舌红",
+        "weight": 32
+      }
+    ],
+    "CONTAINS": [
+      {
+        "source": "苍术",
+        "target": "茯苓",
+        "weight": 35
+      },
+      {
+        "source": "苍术",
+        "target": "甘草",
+        "weight": 34
+      },
+      {
+        "source": "苍术",
+        "target": "陈皮",
+        "weight": 27
+      },
+      {
+        "source": "苍术",
+        "target": "厚朴",
+        "weight": 21
+      },
+      {
+        "source": "苍术",
+        "target": "当归",
+        "weight": 21
+      },
+      {
+        "source": "苍术",
+        "target": "白术",
+        "weight": 21
+      },
+      {
+        "source": "血府逐瘀汤",
+        "target": "当归",
+        "weight": 17
+      },
+      {
+        "source": "四物汤",
+        "target": "桃仁",
+        "weight": 16
+      },
+      {
+        "source": "四物汤",
+        "target": "红花",
+        "weight": 16
+      },
+      {
+        "source": "苍术",
+        "target": "枳壳",
+        "weight": 16
+      }
+    ],
+    "TREATS": [
+      {
+        "source": "苍术",
+        "target": "恶心呕吐",
+        "weight": 4
+      },
+      {
+        "source": "三黄洗剂",
+        "target": "红斑丘疹",
+        "weight": 3
+      },
+      {
+        "source": "五味消毒饮",
+        "target": "舌红",
+        "weight": 3
+      },
+      {
+        "source": "参苓白术散",
+        "target": "便溏",
+        "weight": 3
+      },
+      {
+        "source": "桂枝汤",
+        "target": "口渴",
+        "weight": 3
+      },
+      {
+        "source": "犀角地黄汤",
+        "target": "皮肤紫斑多",
+        "weight": 3
+      },
+      {
+        "source": "玄明粉",
+        "target": "大便秘结",
+        "weight": 3
+      },
+      {
+        "source": "续命汤",
+        "target": "有汗",
+        "weight": 3
+      },
+      {
+        "source": "苍术",
+        "target": "大便秘结",
+        "weight": 3
+      },
+      {
+        "source": "苍术",
+        "target": "胸闷",
+        "weight": 3
+      }
+    ],
+    "HAS_EFFECT": [
+      {
+        "source": "黄芩",
+        "target": "清热",
+        "weight": 50
+      },
+      {
+        "source": "甘草",
+        "target": "清热",
+        "weight": 49
+      },
+      {
+        "source": "茯苓",
+        "target": "清热",
+        "weight": 39
+      },
+      {
+        "source": "栀子",
+        "target": "清热",
+        "weight": 38
+      },
+      {
+        "source": "茯苓",
+        "target": "健脾",
+        "weight": 38
+      },
+      {
+        "source": "连翘",
+        "target": "清热",
+        "weight": 38
+      },
+      {
+        "source": "大黄",
+        "target": "清热",
+        "weight": 37
+      },
+      {
+        "source": "黄连",
+        "target": "清热",
+        "weight": 37
+      },
+      {
+        "source": "白术",
+        "target": "健脾",
+        "weight": 35
+      },
+      {
+        "source": "当归",
+        "target": "活血化瘀",
+        "weight": 30
+      }
+    ],
+    "RELIEVES": [
+      {
+        "source": "大黄",
+        "target": "大便秘结",
+        "weight": 19
+      },
+      {
+        "source": "甘草",
+        "target": "口渴",
+        "weight": 14
+      },
+      {
+        "source": "茯苓",
+        "target": "便溏",
+        "weight": 14
+      },
+      {
+        "source": "茯苓",
+        "target": "腹胀",
+        "weight": 13
+      },
+      {
+        "source": "茯苓",
+        "target": "大便秘结",
+        "weight": 12
+      },
+      {
+        "source": "甘草",
+        "target": "头痛",
+        "weight": 11
+      },
+      {
+        "source": "黄芩",
+        "target": "大便秘结",
+        "weight": 11
+      },
+      {
+        "source": "厚朴",
+        "target": "腹胀",
+        "weight": 10
+      },
+      {
+        "source": "白术",
+        "target": "便溏",
+        "weight": 10
+      },
+      {
+        "source": "连翘",
+        "target": "大便秘结",
+        "weight": 10
+      }
+    ]
+  }
+}

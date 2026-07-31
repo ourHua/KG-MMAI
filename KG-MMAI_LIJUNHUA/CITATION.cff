@@ -1,0 +1,16 @@
+cff-version: 1.2.0
+message: "Please cite this software package when using its code, processed data, results, or figures."
+title: "KG-MMAI Experiment Package"
+type: software
+authors:
+  - family-names: "LIJUNHUA"
+year: 2026
+version: "1.0.0"
+repository-code: "https://github.com/ourHua/KG-MMAI"
+abstract: "Reproducible Python workflow for structural analysis, typed link prediction, robustness testing, statistical analysis, and figure generation for a traditional Chinese medicine knowledge graph."
+keywords:
+  - knowledge graph
+  - traditional Chinese medicine
+  - link prediction
+  - reproducible research
+  - network analysis

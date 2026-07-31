@@ -1,0 +1,6 @@
+code,interpretation,all_entities,core_entities,retention_pct
+SYM,Symptom / sign,4617,965,20.9
+CAU,Cause / pathogenesis / condition,1253,246,19.63
+PRE,Prescription / formula,928,197,21.23
+HER,Herb,625,344,55.04
+EFF,Effect / treatment action,601,153,25.46

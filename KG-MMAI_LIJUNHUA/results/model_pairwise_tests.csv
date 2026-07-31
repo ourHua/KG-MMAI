@@ -1,0 +1,7 @@
+model_a,model_b,mrr_a,mrr_b,diff,ci_low,ci_high,cohens_d,p_paired_t,p_wilcoxon,significant_0.05
+TransE,DistMult,0.2051,0.1861,0.0191,0.0095,0.0283,0.094,8.22e-05,7.62e-06,True
+TransE,ComplEx,0.2051,0.1751,0.03,0.0204,0.0398,0.146,9.01e-10,1.17e-11,True
+TransE,RotatE,0.2051,0.2059,-0.0007,-0.0096,0.0078,-0.004,8.74e-01,4.89e-01,False
+DistMult,ComplEx,0.1861,0.1751,0.011,0.004,0.0178,0.075,1.67e-03,6.33e-05,True
+DistMult,RotatE,0.1861,0.2059,-0.0198,-0.0295,-0.0102,-0.096,5.68e-05,6.68e-04,True
+ComplEx,RotatE,0.1751,0.2059,-0.0308,-0.0405,-0.0213,-0.15,3.36e-10,5.86e-11,True
