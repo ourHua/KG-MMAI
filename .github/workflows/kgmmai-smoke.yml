@@ -1,0 +1,31 @@
+name: KG-MMAI smoke checks
+
+on:
+  push:
+    paths:
+      - 'KG-MMAI_LIJUNHUA/**'
+      - '.github/workflows/kgmmai-smoke.yml'
+  pull_request:
+    paths:
+      - 'KG-MMAI_LIJUNHUA/**'
+      - '.github/workflows/kgmmai-smoke.yml'
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: KG-MMAI_LIJUNHUA
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -r requirements.txt
+      - name: Compile Python sources
+        run: python -m compileall -q code tests run_experiments.py
+      - name: Run deterministic tests
+        run: python -m unittest discover -s tests -v
+      - name: Regenerate structural tables and Figures 1-4
+        run: python run_experiments.py --steps structure figures-structure --skip-figure-check
