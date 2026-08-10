@@ -6,8 +6,8 @@ identifies surface forms assigned to more than one entity type, and rebuilds
 the graph under S0 (as annotated), S1 (expert correction of the five PRE/HER
 collisions), and S2 (majority harmonisation of all multi-type forms).
 
-The raw corpus is intentionally not redistributed. Place the source file at
-``data/train.txt`` before running this script.
+The raw corpus is intentionally not redistributed. Place an authorised local
+copy at ``data/train.txt`` or pass ``--corpus PATH``.
 
 Outputs are written to ``results/sensitivity/``.
 """
@@ -15,6 +15,7 @@ Outputs are written to ``results/sensitivity/``.
 from __future__ import annotations
 
 from collections import Counter, defaultdict
+import argparse
 from itertools import product
 from pathlib import Path
 
@@ -40,22 +41,17 @@ SCHEMA = {
 RULES = {(h, t): r for r, (h, t) in SCHEMA.items()}
 TYPES = ("SYM", "CAU", "PRE", "HER", "EFF")
 
+# Expert adjudication of the five surface forms carrying both PRE and HER.
 EXPERT_MAP = {
-    "苍术": "HER",       # Cangzhu / Atractylodis Rhizoma
-    "麦门冬": "HER",     # Maimendong / Ophiopogonis Radix
-    "橘皮": "HER",       # Jupi / Citri Reticulatae Pericarpium
-    "紫雪丹": "PRE",     # Zixue Dan
-    "金水六君煎": "PRE", # Jinshui Liujun Jian
+    "苍术": "HER",        # Atractylodis Rhizoma
+    "麦门冬": "HER",      # Ophiopogonis Radix
+    "橘皮": "HER",        # Citri Reticulatae Pericarpium
+    "紫雪丹": "PRE",      # Zixue Dan
+    "金水六君煎": "PRE",  # Jinshui Liujun Jian
 }
 
 
 def read_samples(path=DATA / "train.txt"):
-    """Read comma-separated character/BIO rows into samples."""
-    if not Path(path).exists():
-        raise FileNotFoundError(
-            f"Raw BIO corpus not found: {path}. The source corpus is not "
-            "redistributed; place the authorised local copy at data/train.txt."
-        )
     samples, cur = [], []
     n_tokens = 0
     repairs = Counter()
@@ -73,11 +69,11 @@ def read_samples(path=DATA / "train.txt"):
             char, tag = parts[0], parts[-1].strip()
             n_tokens += 1
             if tag != "O":
-                prefix, _, typ = tag.partition("-")
+                pre, _, typ = tag.partition("-")
                 clean = "".join(ch for ch in typ if ch.isalpha()).upper()[:3]
                 if clean != typ:
                     repairs[typ] += 1
-                tag = f"{prefix}-{clean}"
+                tag = f"{pre}-{clean}"
             cur.append((char, tag))
     if cur:
         samples.append(cur)
@@ -100,63 +96,58 @@ def spans(sample):
             buf, cur_t = [], None
     if buf:
         out.append((cur_t, "".join(buf)))
-    return [(typ, name) for typ, name in out if typ in TYPES and name]
+    return [(t, n) for t, n in out if t in TYPES and n]
 
 
 def build(sample_mentions, remap=None):
-    """Build node and weighted candidate-edge tables under a type remapping."""
+    """Build typed nodes and weighted within-sample co-occurrence triples."""
     remap = remap or {}
-    freq, edge_w = Counter(), Counter()
-    for mentions in sample_mentions:
-        fixed = [(remap.get(name, typ), name) for typ, name in mentions]
-        for typ, name in fixed:
-            freq[(typ, name)] += 1
+    freq = Counter()
+    edge_w = Counter()
+    for ments in sample_mentions:
+        fixed = [(remap.get(n, t), n) for t, n in ments]
+        for t, n in fixed:
+            freq[(t, n)] += 1
         by_type = defaultdict(set)
-        for typ, name in fixed:
-            by_type[typ].add(name)
-        for (head_t, tail_t), rel in RULES.items():
-            for head, tail in product(
-                sorted(by_type.get(head_t, ())),
-                sorted(by_type.get(tail_t, ())),
-            ):
-                if head != tail:
-                    edge_w[(head_t, head, rel, tail_t, tail)] += 1
+        for t, n in fixed:
+            by_type[t].add(n)
+        for (ht, tt), rel in RULES.items():
+            for h, t_ in product(sorted(by_type.get(ht, ())),
+                                 sorted(by_type.get(tt, ()))):
+                if h == t_:
+                    continue
+                edge_w[(ht, h, rel, tt, t_)] += 1
 
     ids, counter = {}, Counter()
-    ordered = sorted(freq.items(), key=lambda kv: (kv[0][0], -kv[1], kv[0][1]))
-    for (typ, name), _ in ordered:
-        ids[(typ, name)] = f"{typ}_{counter[typ]:05d}"
-        counter[typ] += 1
+    for (t, n), _ in sorted(freq.items(), key=lambda kv: (kv[0][0], -kv[1], kv[0][1])):
+        ids[(t, n)] = f"{t}_{counter[t]:05d}"
+        counter[t] += 1
 
-    nodes = pd.DataFrame([
-        {"id": ids[(typ, name)], "name": name, "type": typ, "frequency": count}
-        for (typ, name), count in freq.items()
-    ]).sort_values("id").reset_index(drop=True)
+    nodes = pd.DataFrame(
+        [{"id": ids[(t, n)], "name": n, "type": t, "frequency": c}
+         for (t, n), c in freq.items()]
+    ).sort_values("id").reset_index(drop=True)
 
-    edges = pd.DataFrame([
-        {
-            "source_id": ids[(ht, head)], "source_name": head, "source_type": ht,
-            "relation": rel,
-            "target_id": ids[(tt, tail)], "target_name": tail, "target_type": tt,
-            "weight": weight,
-        }
-        for (ht, head, rel, tt, tail), weight in edge_w.items()
-    ]).sort_values(["relation", "source_id", "target_id"]).reset_index(drop=True)
+    edges = pd.DataFrame(
+        [{"source_id": ids[(ht, h)], "source_name": h, "source_type": ht,
+          "relation": rel, "target_id": ids[(tt, t_)], "target_name": t_,
+          "target_type": tt, "weight": w}
+         for (ht, h, rel, tt, t_), w in edge_w.items()]
+    ).sort_values(["relation", "source_id", "target_id"]).reset_index(drop=True)
     return nodes, edges
 
 
 def profile(edges, tau=2, label=""):
-    """Return the structural profile of the thresholded core graph."""
     sub = edges[edges.weight >= tau]
-    graph = nx.DiGraph()
-    for row in sub.itertuples(index=False):
-        graph.add_edge(row.source_id, row.target_id)
-    n, m = graph.number_of_nodes(), graph.number_of_edges()
-    components = sorted(nx.weakly_connected_components(graph), key=len, reverse=True)
-    degrees = np.array([d for _, d in graph.degree()], dtype=float)
-    violations = sum(
-        1 for row in sub.itertuples(index=False)
-        if SCHEMA.get(row.relation, (None, None)) != (row.source_type, row.target_type)
+    G = nx.DiGraph()
+    for r in sub.itertuples(index=False):
+        G.add_edge(r.source_id, r.target_id)
+    n, m = G.number_of_nodes(), G.number_of_edges()
+    comps = sorted(nx.weakly_connected_components(G), key=len, reverse=True)
+    deg = np.array([d for _, d in G.degree()], dtype=float)
+    tviol = sum(
+        1 for r in sub.itertuples(index=False)
+        if SCHEMA.get(r.relation, (None, None)) != (r.source_type, r.target_type)
     )
     return {
         "condition": label,
@@ -165,96 +156,183 @@ def profile(edges, tau=2, label=""):
         "all_triples": len(edges),
         "nodes": n,
         "edges": m,
-        "components": len(components),
-        "largest_component_pct": round(100 * len(components[0]) / n, 2) if n else 0.0,
-        "mean_degree": round(float(degrees.mean()), 2) if n else 0.0,
-        "median_degree": float(np.median(degrees)) if n else 0.0,
-        "degree_skewness": round(float(sps.skew(degrees)), 2) if n else 0.0,
-        "max_degree": int(degrees.max()) if n else 0,
-        "density": round(nx.density(graph), 6),
-        "type_violations": violations,
+        "components": len(comps),
+        "largest_component_pct": round(100 * len(comps[0]) / n, 2) if n else 0.0,
+        "mean_degree": round(float(deg.mean()), 2) if n else 0.0,
+        "median_degree": float(np.median(deg)) if n else 0.0,
+        "degree_skewness": round(float(sps.skew(deg)), 2) if n else 0.0,
+        "max_degree": int(deg.max()) if n else 0,
+        "density": round(nx.density(G), 6),
+        "type_violations": tviol,
         "duplicate_triples": int(sub.duplicated(
             subset=["source_id", "relation", "target_id"]
         ).sum()),
-    }, graph
+    }, G
 
 
-def hubs(graph, nodes, label, k=10):
-    degree = pd.Series(dict(graph.degree())).sort_values(ascending=False).head(k)
-    node_map = nodes.set_index("id")
+def hubs(G, nodes, label, k=10):
+    deg = pd.Series(dict(G.degree())).sort_values(ascending=False).head(k)
+    nm = nodes.set_index("id")
     return pd.DataFrame([
-        {
-            "condition": label,
-            "rank": i + 1,
-            "id": entity,
-            "name": node_map.loc[entity, "name"],
-            "type": node_map.loc[entity, "type"],
-            "degree": int(value),
-        }
-        for i, (entity, value) in enumerate(degree.items())
+        {"condition": label, "rank": i + 1, "id": e,
+         "name": nm.loc[e, "name"], "type": nm.loc[e, "type"], "degree": int(d)}
+        for i, (e, d) in enumerate(deg.items())
     ])
 
 
-def main():
-    samples, n_tokens, repairs = read_samples()
-    mentions = [spans(sample) for sample in samples]
-    n_mentions = sum(len(m) for m in mentions)
-    print(
-        f"samples {len(samples)}  character tokens {n_tokens}  "
-        f"mentions {n_mentions}  label repairs {dict(repairs)}"
+def semantic_core_edges(edges, tau=2):
+    """Condition-comparable semantic keys independent of generated node IDs."""
+    sub = edges[edges.weight >= tau]
+    return set(zip(
+        sub.source_type, sub.source_name, sub.relation,
+        sub.target_type, sub.target_name,
+    ))
+
+
+MANUSCRIPT_EXPECTED = {
+    "S0_as_annotated": {
+        "unique_entities": 8024, "all_triples": 48566, "nodes": 1905,
+        "edges": 9544, "largest_component_pct": 99.48, "max_degree": 225,
+    },
+    "S1_expert_corrected": {
+        "unique_entities": 8019, "all_triples": 48401, "nodes": 1903,
+        "edges": 9440, "largest_component_pct": 99.47, "max_degree": 225,
+    },
+    "S2_majority_harmonised": {
+        "unique_entities": 7922, "all_triples": 48978, "nodes": 1946,
+        "edges": 9908, "largest_component_pct": 99.23, "max_degree": 250,
+    },
+}
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--corpus", default=str(DATA / "train.txt"),
+        help="Authorised local BIO corpus. The public release does not redistribute it.",
     )
+    parser.add_argument(
+        "--strict-manuscript", action="store_true",
+        help="Fail if regenerated headline structural values differ from the revised manuscript.",
+    )
+    return parser.parse_args()
+
+
+def compare_to_manuscript(profile_table):
+    failures = []
+    table = profile_table.set_index("condition")
+    for condition, expected in MANUSCRIPT_EXPECTED.items():
+        if condition not in table.index:
+            failures.append(f"missing condition: {condition}")
+            continue
+        row = table.loc[condition]
+        for key, target in expected.items():
+            got = float(row[key]) if isinstance(target, float) else int(row[key])
+            ok = abs(got - target) < 1e-9 if isinstance(target, float) else got == target
+            if not ok:
+                failures.append(f"{condition}:{key}={got} (manuscript {target})")
+    return failures
+
+
+if __name__ == "__main__":
+    args = parse_args()
+    corpus = Path(args.corpus).expanduser().resolve()
+    if not corpus.is_file():
+        raise SystemExit(
+            "The raw BIO corpus is intentionally not redistributed. "
+            "Place an authorised copy at data/train.txt (or pass --corpus PATH) "
+            "to rebuild S0/S1/S2 from source."
+        )
+
+    samples, n_tokens, repairs = read_samples(corpus)
+    mentions = [spans(s) for s in samples]
+    print(f"samples {len(samples)}  character tokens {n_tokens}  "
+          f"mentions {sum(len(m) for m in mentions)}  label repairs {dict(repairs)}")
 
     surface = defaultdict(Counter)
-    for sample_mentions in mentions:
-        for typ, name in sample_mentions:
-            surface[name][typ] += 1
-    collisions = {name: counts for name, counts in surface.items() if len(counts) > 1}
-
+    for ments in mentions:
+        for t, n in ments:
+            surface[n][t] += 1
+    coll = {n: c for n, c in surface.items() if len(c) > 1}
     rows = []
-    for name, counts in sorted(collisions.items(), key=lambda kv: -sum(kv[1].values())):
-        row = {
-            "name": name,
-            "total_mentions": sum(counts.values()),
-            "n_types": len(counts),
-            "majority_type": counts.most_common(1)[0][0],
-        }
-        row.update({typ: counts.get(typ, 0) for typ in TYPES})
+    for n, c in sorted(coll.items(), key=lambda kv: -sum(kv[1].values())):
+        row = {"name": n, "total_mentions": sum(c.values()),
+               "n_types": len(c), "majority_type": c.most_common(1)[0][0]}
+        row.update({t: c.get(t, 0) for t in TYPES})
         rows.append(row)
-    collision_df = pd.DataFrame(rows)
-    collision_df.to_csv(OUT / "label_collisions.csv", index=False)
-    collision_mentions = int(collision_df.total_mentions.sum())
-    print(
-        f"multi-type surface forms: {len(collisions)} "
-        f"({collision_mentions} mentions, {100 * collision_mentions / n_mentions:.2f}% of all mentions)"
-    )
+    collisions = pd.DataFrame(rows)
+    collisions.to_csv(OUT / "label_collisions.csv", index=False)
+    tot_ment = sum(len(m) for m in mentions)
+    print(f"multi-type surface forms: {len(coll)} "
+          f"({collisions.total_mentions.sum()} mentions, "
+          f"{100 * collisions.total_mentions.sum() / tot_ment:.2f}% of all mentions)")
 
-    majority_map = {name: counts.most_common(1)[0][0] for name, counts in collisions.items()}
+    majority_map = {n: c.most_common(1)[0][0] for n, c in coll.items()}
     conditions = {
         "S0_as_annotated": {},
         "S1_expert_corrected": EXPERT_MAP,
         "S2_majority_harmonised": majority_map,
     }
 
-    profile_rows, hub_rows = [], []
+    prof_rows, hub_rows = [], []
+    edge_sets = {}
     for label, remap in conditions.items():
         nodes, edges = build(mentions, remap)
         nodes.to_csv(OUT / f"nodes_{label}.csv", index=False)
         edges.to_csv(OUT / f"edges_{label}.csv", index=False)
-        stats, graph = profile(edges, tau=2, label=label)
-        stats["unique_entities"] = len(nodes)
-        profile_rows.append(stats)
-        hub_rows.append(hubs(graph, nodes, label))
-        print(
-            f"{label:24s} entities {len(nodes):6d} triples {len(edges):7d} "
-            f"core {stats['nodes']:5d}/{stats['edges']:6d} "
-            f"LCC {stats['largest_component_pct']}% maxdeg {stats['max_degree']}"
-        )
+        p, G = profile(edges, 2, label)
+        p["unique_entities"] = len(nodes)
+        prof_rows.append(p)
+        hub_rows.append(hubs(G, nodes, label))
+        edge_sets[label] = semantic_core_edges(edges)
+        print(f"{label:24s} entities {len(nodes):6d}  triples {len(edges):7d}  "
+              f"core {p['nodes']:5d}/{p['edges']:6d}  "
+              f"LCC {p['largest_component_pct']}%  maxdeg {p['max_degree']}")
 
-    profiles = pd.DataFrame(profile_rows)
-    profiles.to_csv(OUT / "sensitivity_structure.csv", index=False)
-    pd.concat(hub_rows, ignore_index=True).to_csv(OUT / "sensitivity_hubs.csv", index=False)
-    print("\n" + profiles.to_string(index=False))
+    profile_table = pd.DataFrame(prof_rows)
+    profile_table.to_csv(OUT / "sensitivity_structure.csv", index=False)
+    pd.concat(hub_rows).to_csv(OUT / "sensitivity_hubs.csv", index=False)
 
+    # Keep the manuscript's net-count change distinct from edge membership
+    # turnover measured by symmetric semantic set difference.
+    s0 = edge_sets["S0_as_annotated"]
+    s0_edges = int(profile_table.loc[
+        profile_table.condition == "S0_as_annotated", "edges"
+    ].iloc[0])
+    changes = []
+    for condition in ("S1_expert_corrected", "S2_majority_harmonised"):
+        current = edge_sets[condition]
+        current_edges = int(profile_table.loc[
+            profile_table.condition == condition, "edges"
+        ].iloc[0])
+        added = len(current - s0)
+        removed = len(s0 - current)
+        changes.append({
+            "condition": condition,
+            "net_core_edge_count_change": current_edges - s0_edges,
+            "abs_net_change": abs(current_edges - s0_edges),
+            "abs_net_change_pct_of_S0": round(
+                100 * abs(current_edges - s0_edges) / s0_edges, 3
+            ),
+            "added_semantic_edges": added,
+            "removed_semantic_edges": removed,
+            "symmetric_difference": added + removed,
+            "symmetric_difference_pct_of_S0": round(
+                100 * (added + removed) / len(s0), 3
+            ),
+        })
+    pd.DataFrame(changes).to_csv(OUT / "sensitivity_changes_vs_s0.csv", index=False)
 
-if __name__ == "__main__":
-    main()
+    print("\n", profile_table.to_string(index=False))
+    print("\nChanges versus S0:")
+    print(pd.DataFrame(changes).to_string(index=False))
+
+    failures = compare_to_manuscript(profile_table)
+    if failures:
+        print("\nMANUSCRIPT ALIGNMENT WARNING:")
+        for item in failures:
+            print("  -", item)
+        if args.strict_manuscript:
+            raise SystemExit(2)
+    else:
+        print("\nHeadline S0/S1/S2 structural values match the revised manuscript.")

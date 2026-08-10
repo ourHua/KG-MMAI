@@ -1,29 +1,66 @@
-# KG-MMAI Experiment Package
+# KG-MMAI — Manuscript Reproducibility Package
 
-**Author:** LIJUNHUA  
-**Purpose:** Reproduce the knowledge-graph construction, link-prediction experiments, statistical analyses, reviewer-requested sensitivity analyses, and publication figures for the KG-MMAI manuscript.
+**Author:** Junhua Li (LIJUNHUA)  
+**Manuscript:** *Constructing and Auditing a Weakly Supervised Traditional Chinese Medicine Knowledge Graph: Structural Profile, Annotation Sensitivity, and a Controlled Analysis of Embedding-Model Selection*  
+**Archived release DOI:** `10.5281/zenodo.21731543`
 
-The repository is organised as a reproducible scientific workflow. The analysis scripts generate machine-readable result tables first; the plotting scripts then regenerate the publication figures from those results. The top-level `run_experiments.py` coordinates the dependency order and checks that every expected PNG/PDF figure has actually been written.
+This directory is aligned to the **revised IJASC manuscript**. It contains the processed graph tables, deterministic KGE implementation, controlled objective ablation, statistical analysis, annotation-sensitivity code, manuscript figures, and release-audit utilities.
+
+## Scientific scope
+
+The code evaluates the **knowledge layer**, not a completed multimodal diagnostic system. The present graph contains five entity types (`SYM`, `CAU`, `PRE`, `HER`, `EFF`) and five directional relation types. It does **not** contain a syndrome entity type or a syndrome-adjacency relation. Consequently, the KG-MMAI multimodal architecture shown in Figure 10 is a **design specification only**; no multimodal classifier or knowledge-constraint term is implemented or evaluated here.
+
+The structural fingerprint reported in the manuscript is:
+
+| Quantity | Value |
+|---|---:|
+| BIO samples | 6,199 |
+| Character tokens | 307,398 |
+| Entity mentions | 41,262 |
+| Unique type-name entities | 8,024 |
+| Candidate relations | 48,566 |
+| Core entities (`weight >= 2`) | 1,905 |
+| Core relations (`weight >= 2`) | 9,544 |
+| Largest core component | 99.48% |
+| Validation / test triples | 886 / 886 |
+| Ranking queries per seed | 1,772 |
 
 ## Repository layout
 
 ```text
 KG-MMAI_LIJUNHUA/
-├── code/                    Analysis, KGE, statistics, and figure scripts
-├── data/                    Graph tables and the local BIO corpus input
-├── results/                 Machine-readable experiment outputs
-├── figures/                 Publication figures in PNG and PDF
-├── tests/                   Deterministic smoke tests
-├── tools/                   Manifest update / verification utilities
-├── run_experiments.py       Workflow runner and figure-output verifier
-├── requirements.txt         Python dependencies
-├── CITATION.cff             Citation metadata
-└── MANIFEST_SHA256.csv      File sizes and SHA-256 checksums
+├── code/
+│   ├── 01_structural_analysis.py
+│   ├── 02_link_prediction.py
+│   ├── 03_ranking_robustness.py
+│   ├── 04_statistics.py
+│   ├── 05_figures_structure.py
+│   ├── 06_figures_results.py
+│   ├── 07_objective_ablation.py
+│   ├── 08_annotation_sensitivity.py
+│   ├── 09_statistics_revised.py
+│   ├── 10_figures_revision.py
+│   ├── 11_sensitivity_linkpred.py
+│   ├── 12_revision_audit.py
+│   ├── 13_figure_design.py
+│   ├── kge_core.py
+│   ├── figstyle.py
+│   ├── labels.py
+│   └── labels_en.py
+├── data/                 processed public graph tables; raw BIO corpus withheld
+├── results/              machine-readable outputs created by analyses
+├── figures/              final manuscript Figures 1–10 (PNG + PDF)
+├── tests/
+├── tools/
+├── run_experiments.py
+├── requirements.txt
+├── CITATION.cff
+└── MANIFEST_SHA256.csv
 ```
 
 ## Environment
 
-Python 3.10 or newer is recommended. The workflow is CPU-only; a GPU is not required.
+Python 3.10+ is recommended. A GPU is not required.
 
 ```bash
 python -m venv .venv
@@ -34,234 +71,158 @@ python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 ```
 
-Core dependencies include NumPy, pandas, SciPy, NetworkX, Matplotlib, and pypinyin.
-
-## Recommended: reproduce everything
-
-From the `KG-MMAI_LIJUNHUA` directory, run:
+## Run the public-release workflow
 
 ```bash
 python run_experiments.py
 ```
 
-With no mode flag, the runner executes the **complete manuscript workflow**:
+The default workflow recomputes analyses that can be reproduced from the released processed graph tables, regenerates available figures, generates Figure 10, runs the manuscript/result audit, and checks all committed manuscript figure assets.
 
-1. structural analysis;
-2. original link prediction;
-3. ranking robustness;
-4. original statistical analysis;
-5. annotation-sensitivity reconstruction;
-6. controlled objective ablation;
-7. revised triple-level statistical analysis;
-8. S0/S1/S2 corrected-graph link-prediction reruns;
-9. all three figure-generation scripts;
-10. an explicit existence/size check for every expected PNG and PDF.
+The raw BIO corpus is **not** required for the public workflow.
 
-The equivalent explicit command is:
+## Full local end-to-end reproduction
 
-```bash
-python run_experiments.py --all
-```
+The annotation audit and graph reconstruction in Script 08 start from the original BIO corpus. The revised manuscript explicitly does not redistribute that file because redistribution rights were not established.
 
-A successful complete run finishes with a `[figure-check]` block confirming all expected figure files.
-
-## Other execution modes
-
-Run only the original Scripts 01-06 and verify Figures 01-09:
-
-```bash
-python run_experiments.py --original
-```
-
-Run only the reviewer-requested revision experiments and revised figures:
-
-```bash
-python run_experiments.py --revision
-```
-
-Regenerate the figure files from result tables that already exist:
-
-```bash
-python run_experiments.py --figures-only
-```
-
-Run selected stages only:
-
-```bash
-python run_experiments.py --steps structure figures-structure
-python run_experiments.py --steps link-prediction robustness statistics figures-results
-python run_experiments.py --steps objective-ablation statistics-revised figures-revision
-```
-
-`--steps` does **not** add prerequisite stages automatically. Use it only when the required input/result files are already present.
-
-To continue after an error while still returning a non-zero final status:
-
-```bash
-python run_experiments.py --all --continue-on-error
-```
-
-## Script map and dependencies
-
-| Script | Responsibility | Principal outputs / consumers |
-|---|---|---|
-| `01_structural_analysis.py` | Core-graph structure, threshold sensitivity, components, degree statistics | Structural tables used by Scripts 05-06 |
-| `02_link_prediction.py` | Typed, filtered link prediction | Split/metrics used by later analyses |
-| `03_ranking_robustness.py` | Ranking stability across training budgets | Robustness curves and relation-difficulty tables |
-| `04_statistics.py` | Original pairwise tests, effect sizes, bootstrap intervals, small-sample precision | Tables used by Script 06 |
-| `05_figures_structure.py` | Structural visualisation | `fig01`-`fig04` |
-| `06_figures_results.py` | Degree structure, model robustness, relation difficulty, precision, graph map | `fig05`-`fig09` |
-| `07_objective_ablation.py` | Controlled O1/O2/O3 objective ablation in one code base | `results/ablation/*` |
-| `08_annotation_sensitivity.py` | S0/S1/S2 annotation audit and graph rebuilding | `results/sensitivity/*` |
-| `09_statistics_revised.py` | Triple-level inference, clustered bootstrap, Holm adjustment, exact random baseline | `results/statistics/*` |
-| `10_figures_revision.py` | Revision figures | canonical `fig10`-`fig12` aliases plus revised-manuscript aliases |
-| `11_sensitivity_linkpred.py` | Re-run primary link prediction on S0/S1/S2 corrected graphs | `results/sensitivity/linkpred_*` |
-| `kge_core.py` | Shared KGE data preparation, scoring, training, and evaluation | Imported by link-prediction scripts |
-| `figstyle.py` | Shared plotting style, PNG/PDF saving, text-overlap reporting | Imported by figure scripts |
-| `labels.py`, `labels_en.py` | Traceable Latin-script / English entity labels | Used in publication figures |
-
-## Figure outputs
-
-The release keeps a simple canonical sequence `fig01`-`fig12`. Every canonical figure is expected in **both PNG and PDF**:
-
-| Canonical stem | Generated by |
-|---|---|
-| `fig01_schema` | Script 05 |
-| `fig02_extraction_funnel` | Script 05 |
-| `fig03_relation_composition` | Script 05 |
-| `fig04_threshold_sensitivity` | Script 05 |
-| `fig05_degree_structure` | Script 06 |
-| `fig06_ranking_robustness` | Script 06 |
-| `fig07_relation_difficulty` | Script 06 |
-| `fig08_small_sample` | Script 06 |
-| `fig09_graph_map` | Script 06 |
-| `fig10_annotation_sensitivity` | Script 10 |
-| `fig11_objective_ablation` | Script 10 |
-| `fig12_relation_lift_exact` | Script 10 |
-
-Script 10 also writes three **intentional aliases** that follow the numbering used inside the revised manuscript:
-
-```text
-fig06_annotation_sensitivity.png / .pdf
-fig07_objective_ablation.png / .pdf
-fig08_relation_lift_exact.png / .pdf
-```
-
-Therefore a complete run verifies **15 figure stems / 30 files**: the 12 canonical assets plus the 3 revised-manuscript aliases.
-
-### Why both PNG and PDF?
-
-- **PNG** is convenient for GitHub preview, Word insertion, and rapid visual checking.
-- **PDF** preserves vector graphics for publication-quality export.
-
-Scripts 05 and 06 save through `figstyle.save_checked()`, which renders the canvas, reports possible text overlaps, and then writes both formats. Script 10 likewise writes both PNG and PDF for every revised figure and alias.
-
-## Core graph checks
-
-`01_structural_analysis.py` recomputes the principal graph quantities from `data/nodes.csv` and `data/edges.csv`:
-
-| Quantity | Recomputed value |
-|---|---:|
-| Total entities | 8,024 |
-| Candidate relations | 48,566 |
-| Core entities at weight >= 2 | 1,905 |
-| Core relations at weight >= 2 | 9,544 |
-| Largest core component | 99.48% |
-| Core components | 6 |
-| Single-occurrence relations | 80.35% |
-| Schema violations | 0 |
-| Duplicate triples | 0 |
-| Train / validation / test | 7,772 / 886 / 886 |
-
-These values provide a fast structural fingerprint before the more expensive embedding experiments are run.
-
-## Link-prediction protocol
-
-The shared KGE implementation uses:
-
-- relation-stratified 80/10/10 splitting with entity-coverage repair;
-- typed negative sampling with eight negatives per positive triple;
-- 64-dimensional embeddings;
-- seeds 42, 1337, and 2024;
-- typed, filtered head and tail ranking;
-- TransE, DistMult, ComplEx, and RotatE scoring functions.
-
-The controlled revision experiment in Script 07 keeps the code base, split, sampler, seeds, optimiser settings, and evaluation protocol fixed while varying only the objective:
-
-- **O1:** pairwise margin-ranking loss;
-- **O2:** binary logistic loss with uniform negative weights;
-- **O3:** binary logistic loss with self-adversarial negative weights.
-
-## Annotation-sensitivity workflow
-
-Script 08 rebuilds the graph under three conditions:
-
-- **S0:** as annotated;
-- **S1:** expert correction of the specified PRE/HER collisions;
-- **S2:** majority harmonisation of multi-type surface forms.
-
-Script 11 is then invoked once for each rebuilt graph. `run_experiments.py` passes the corresponding edge table explicitly with `--condition` and `--edges`, ensuring that S0/S1/S2 are actually trained and evaluated on different corrected graphs rather than silently falling back to `data/edges.csv`.
-
-## Raw corpus and release policy
-
-The annotation audit in Script 08 requires:
+Researchers who already have authorised access can place the file locally at:
 
 ```text
 data/train.txt
 ```
 
-The runner checks for this file before `--revision` or the complete workflow begins.
-
-**Important for archival/public release:** the code requirement and the redistribution policy are separate issues. Before creating a GitHub Release or Zenodo version, confirm that you have the right to redistribute `data/train.txt`. If redistribution is not permitted, remove it from the public release and keep an authorised local copy at the same path when reproducing the revision workflow. The processed `nodes.csv` and `edges.csv` remain sufficient for the original graph analyses.
-
-## Figure-only regeneration
-
-After all analysis result files have been generated once, publication graphics can be recreated without retraining:
+and run:
 
 ```bash
+python run_experiments.py --full-local
+```
+
+This mode:
+
+1. rebuilds S0/S1/S2 from the BIO annotations;
+2. checks the manuscript structural values;
+3. reruns the 72 controlled ablation runs;
+4. performs triple-level clustered inference;
+5. reruns the 60-epoch O3 link-prediction protocol on S0/S1/S2;
+6. regenerates Figures 1–10; and
+7. applies the strict manuscript-alignment audit.
+
+## Other useful commands
+
+```bash
+# Revision analyses only
+python run_experiments.py --revision
+
+# Original structural/KGE workflow
+python run_experiments.py --original
+
+# Regenerate figures from existing result tables
 python run_experiments.py --figures-only
-```
 
-This runs Scripts 05, 06, and 10 and then checks every expected PNG/PDF output. If a prerequisite CSV is missing, the responsible plotting script fails instead of silently producing a partial figure set.
+# Selected stages, with no implicit prerequisites
+python run_experiments.py --steps objective-ablation statistics-revised figures-revision
 
-## Smoke tests
-
-Run:
-
-```bash
+# Unit tests
 python -m unittest discover -s tests -v
 ```
 
-These tests are intended as quick deterministic checks; they are not a replacement for re-running the full experimental workflow.
+## Manuscript figure map
 
-## Reproducibility manifest
+The final revised manuscript uses **Figures 1–10**:
 
-After changing tracked code, results, or figures, regenerate and verify the manifest:
+| Manuscript figure | Repository asset | Generator |
+|---|---|---|
+| Figure 1 | `fig01_schema.png/.pdf` | Script 05 |
+| Figure 2 | `fig02_extraction_funnel.png/.pdf` | Script 05 |
+| Figure 3 | `fig03_relation_composition.png/.pdf` | Script 05 |
+| Figure 4 | `fig04_threshold_sensitivity.png/.pdf` | Script 05 |
+| Figure 5 | `fig05_degree_structure.png/.pdf` | Script 06 |
+| Figure 6 | `fig06_annotation_sensitivity.png/.pdf` | Script 10 |
+| Figure 7 | `fig07_objective_ablation.png/.pdf` | Script 10 |
+| Figure 8 | `fig08_relation_lift_exact.png/.pdf` | Script 10 |
+| Figure 9 | `fig09_graph_map.png/.pdf` | Script 06 |
+| Figure 10 | `fig10_kgmmai_design.png/.pdf` | Script 13 |
+
+Historical diagnostic plots formerly numbered 6–8 in an earlier draft are **not manuscript figures**. `figstyle.py` redirects those outputs to `figures/supplementary/` so they cannot overwrite the final manuscript assets.
+
+## Controlled objective ablation
+
+Script 07 holds constant the code base, graph, deterministic split, typed negative sampler, random-number stream, embedding dimension, optimiser, learning rate, batch size, seeds, budgets, and filtered typed evaluation. Only the objective changes:
+
+- **O1 margin** — pairwise margin-ranking loss with uniform negative weights;
+- **O2 logistic** — binary logistic loss with uniform negative weights;
+- **O3 self-adversarial** — the same logistic loss with self-adversarial negative weighting.
+
+Four models × three objectives × three seeds × two budgets = **72 training runs**.
+
+At 60 epochs the revised manuscript reports:
+
+| Objective | 1st | 2nd | 3rd | 4th |
+|---|---|---|---|---|
+| O1 margin | DistMult 0.0991 | TransE 0.0942 | ComplEx 0.0932 | RotatE 0.0845 |
+| O2 logistic | RotatE 0.2711 | TransE 0.2577 | DistMult 0.1627 | ComplEx 0.1546 |
+| O3 self-adversarial | RotatE 0.2119 | TransE 0.1930 | DistMult 0.1859 | ComplEx 0.1831 |
+
+Script 12 checks these values before a release is tagged.
+
+## Statistical protocol
+
+Script 09 follows the revised analysis contract:
+
+- primary unit: **886 held-out triples**, not 1,772 queries;
+- 5,000 cluster-bootstrap resamples of whole triples;
+- secondary bootstrap blocking on **343 shared head entities**;
+- six paired model comparisons;
+- Holm-Bonferroni adjustment reported for **both** paired t-tests and Wilcoxon tests;
+- paired Cohen's `d`;
+- exact per-query random-ranking baseline `H_m / m`.
+
+The exact-baseline relation analysis is therefore not comparable to the older pooled approximation.
+
+## Annotation audit
+
+Script 08 detects surface forms assigned more than one entity type, reconstructs three graph conditions, and writes a direct comparison against S0:
+
+- **S0** — as annotated;
+- **S1** — expert correction of the five PRE/HER collisions;
+- **S2** — majority harmonisation of every multi-type surface form.
+
+The script distinguishes two quantities that should not be conflated:
+
+- the **net core-edge-count change** (the quantity behind the manuscript's 104-triple / approximately 1.1% S1 statement);
+- the **symmetric semantic edge-set difference** (a larger membership-change measure).
+
+`--strict-manuscript` checks the final revised Table 6 values.
+
+## Data governance
+
+`data/train.txt` is intentionally excluded from the current public release. The manuscript states that the source archive supplied no explicit redistribution licence; therefore source analysis and source redistribution are treated separately.
+
+The public package retains the processed node/edge tables and the code necessary for authorised users to rebuild them from a local source copy. See `data/README.md`.
+
+> **Repository-history note:** deleting a file from the current branch does not erase earlier Git history. Before creating the archival release, maintainers should verify that the raw corpus is absent from the released archive and, if required by the data-governance decision, purge historical blobs using an appropriate Git-history rewriting procedure.
+
+## Release audit and manifest
+
+After a local full rerun:
 
 ```bash
+python code/12_revision_audit.py --strict-sensitivity
 python tools/update_manifest.py
 python tools/verify_manifest.py
 ```
 
-Do this **after** the final experiment/figure run so the checksums correspond to the files actually archived.
-
-## Suggested final-release sequence
-
-```bash
-python -m unittest discover -s tests -v
-python run_experiments.py --all
-python tools/update_manifest.py
-python tools/verify_manifest.py
-```
-
-Then inspect `figures/` visually, commit the regenerated results/figures, create the GitHub release, and archive that exact release on Zenodo.
+The manifest utility deliberately excludes `data/train.txt` even if an authorised local copy is present.
 
 ## Citation
 
-Use the metadata in `CITATION.cff`. A general software citation can be written as:
+Use `CITATION.cff`. The archived reproducibility package is associated with:
 
-> LIJUNHUA. *KG-MMAI Experiment Package: Knowledge-Graph Experiment Reproduction Code and Data*. 2026.
+```text
+DOI: 10.5281/zenodo.21731543
+Repository: https://github.com/ourHua/KG-MMAI
+```
 
-## Authorship
+## Interpretation boundary
 
-Repository maintenance and experiment-package authorship are recorded under **LIJUNHUA**.
+This package supports claims about graph construction, structural quality, annotation sensitivity, typed filtered link prediction, objective sensitivity, and statistical robustness. It does **not** provide evidence of KG-MMAI diagnostic accuracy, clinical benefit, or multimodal performance.

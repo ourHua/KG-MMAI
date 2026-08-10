@@ -1,16 +1,24 @@
 cff-version: 1.2.0
-message: "Please cite this software package when using its code, processed data, results, or figures."
-title: "KG-MMAI Experiment Package"
+message: "Please cite this reproducibility package when using its code, processed data, results, or figures."
+title: "KG-MMAI Manuscript Reproducibility Package"
 type: software
 authors:
-  - family-names: "LIJUNHUA"
+  - family-names: "Li"
+    given-names: "Junhua"
+  - family-names: "So"
+    given-names: "Gilja"
 year: 2026
-version: "1.0.0"
+version: "1.1.0"
 repository-code: "https://github.com/ourHua/KG-MMAI"
-abstract: "Reproducible Python workflow for structural analysis, typed link prediction, robustness testing, statistical analysis, and figure generation for a traditional Chinese medicine knowledge graph."
+identifiers:
+  - type: doi
+    value: "10.5281/zenodo.21731543"
+abstract: "Manuscript-aligned Python workflow for weakly supervised TCM knowledge-graph construction, structural auditing, annotation sensitivity, typed link prediction, controlled training-objective ablation, clustered statistical inference, exact random-ranking normalisation, and publication figure generation."
 keywords:
   - knowledge graph
   - traditional Chinese medicine
+  - weak supervision
+  - annotation sensitivity
   - link prediction
   - reproducible research
-  - network analysis
+  - statistical robustness

@@ -1,0 +1,6 @@
+relation,test_triples,head_side_candidates,tail_side_candidates,MRR,expected_random_MRR_exact,lift,lift_ci_low,lift_ci_high
+TREATS,10,196,961,0.274,0.0188,14.6,10.0,19.6
+HAS_EFFECT,246,297,130,0.260,0.0322,8.1,7.2,8.9
+CONTAINS,204,177,321,0.232,0.0264,8.8,7.6,10.1
+RELIEVES,136,311,950,0.215,0.0141,15.2,12.9,17.7
+CAUSES,290,230,893,0.154,0.0173,8.9,7.8,10.1
