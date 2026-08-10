@@ -1,0 +1,48 @@
+name: Refresh manuscript figures
+
+on:
+  push:
+    branches:
+      - fix-paper-figure-rendering
+    paths:
+      - '.github/workflows/refresh-manuscript-figures.yml'
+      - 'KG-MMAI_LIJUNHUA/code/figures/**'
+      - 'KG-MMAI_LIJUNHUA/results/**'
+      - 'KG-MMAI_LIJUNHUA/data/**'
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: KG-MMAI_LIJUNHUA
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix-paper-figure-rendering
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -r requirements.txt
+      - name: Rebuild structural tables
+        run: python code/01_structural_analysis.py
+      - name: Regenerate Figures 1-10 from code/figures
+        run: python run_figures.py
+      - name: Verify manuscript audit
+        run: python code/12_revision_audit.py
+      - name: Commit regenerated figures
+        working-directory: .
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add KG-MMAI_LIJUNHUA/figures
+          if git diff --cached --quiet; then
+            echo "No figure changes to commit."
+          else
+            git commit -m "Regenerate manuscript Figures 1-10 from dedicated scripts"
+            git push origin HEAD:fix-paper-figure-rendering
+          fi
