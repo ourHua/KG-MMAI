@@ -1,0 +1,4 @@
+condition,unique_entities,candidate_triples,core_entities,core_triples,largest_component_pct,degree_skewness,max_degree,type_violations
+S0_as_annotated,8024,48566,1905,9544,99.48,4.79,225,0
+S1_expert_corrected,8019,48401,1903,9440,99.47,4.81,225,0
+S2_majority_harmonised,7922,48978,1946,9908,99.23,4.90,250,0
