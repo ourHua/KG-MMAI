@@ -1,4 +1,9 @@
-type_set,surface_forms,note
-SYM/CAU,88,exact type set reported in manuscript
-PRE/HER,5,exact type set reported in manuscript
-Other six type sets,9,aggregate fallback: remaining 14 minus 5 PRE/HER forms
+type_set,surface_forms
+CAU/SYM,88
+HER/PRE,5
+HER/SYM,2
+PRE/SYM,2
+EFF/PRE,2
+CAU/HER,1
+CAU/PRE,1
+EFF/SYM,1

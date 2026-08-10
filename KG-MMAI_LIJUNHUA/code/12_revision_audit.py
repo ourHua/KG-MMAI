@@ -62,6 +62,12 @@ def first_existing(*paths: Path) -> Path | None:
     return next((path for path in paths if path.is_file()), None)
 
 
+def canonical_type_set(value: str) -> str:
+    """Treat CAU/SYM and SYM/CAU as the same unordered annotation type set."""
+    parts = [part.strip() for part in str(value).split("/") if part.strip()]
+    return "/".join(sorted(parts))
+
+
 def main():
     args = parse_args()
     rows = []
@@ -78,8 +84,6 @@ def main():
             "note": note,
         })
 
-    # Controlled objective ablation. Prefer regenerated outputs; the public
-    # checkout can verify the archived 60-epoch manuscript table.
     ablation_path = first_existing(
         RES / "ablation" / "objective_ablation_summary.csv",
         REF / "objective_ablation_60ep.csv",
@@ -94,33 +98,17 @@ def main():
             sub = A60[A60.objective == obj].set_index("model")
             for model, target in expected.items():
                 got = float(sub.loc[model, "MRR_mean"])
-                add(
-                    "objective_ablation",
-                    f"{obj}:{model}:MRR60",
-                    round(got, 4),
-                    target,
-                    ok=abs(got - target) <= 5e-4,
-                    note=note,
-                )
+                add("objective_ablation", f"{obj}:{model}:MRR60", round(got, 4), target,
+                    ok=abs(got - target) <= 5e-4, note=note)
         rank_a = {m: r + 1 for r, m in enumerate(sorted(CFG_A, key=CFG_A.get, reverse=True))}
         for obj, target in (("margin", 0.4), ("selfadv", -1.0)):
             sub = A60[A60.objective == obj].sort_values("MRR_mean", ascending=False)
             rank_o = {m: r + 1 for r, m in enumerate(sub.model)}
             order = list(CFG_A)
-            rho = float(spearmanr(
-                [rank_a[m] for m in order],
-                [rank_o[m] for m in order],
-            ).statistic)
-            add(
-                "objective_ablation",
-                f"Spearman(ConfigA,{obj})",
-                round(rho, 3),
-                target,
-                ok=abs(rho - target) < 1e-12,
-                note=note,
-            )
+            rho = float(spearmanr([rank_a[m] for m in order], [rank_o[m] for m in order]).statistic)
+            add("objective_ablation", f"Spearman(ConfigA,{obj})", round(rho, 3), target,
+                ok=abs(rho - target) < 1e-12, note=note)
 
-    # Triple-level statistical inference.
     p_path = first_existing(
         RES / "statistics" / "model_pairwise_triplelevel.csv",
         REF / "model_pairwise_triplelevel.csv",
@@ -135,20 +123,11 @@ def main():
         sig = int((pd.to_numeric(o3.p_holm_t, errors="coerce") < 0.05).sum())
         add("statistics", "O3 Holm-significant t-test comparisons", sig, 3, ok=sig == 3)
         max_o3 = float(o3.cohens_d.abs().max())
-        add(
-            "statistics",
-            "O3 maximum |paired Cohen d|",
-            round(max_o3, 3),
-            "<=0.171",
-            ok=max_o3 <= 0.171 + 1e-12,
-        )
-        add(
-            "statistics",
-            "Holm-adjusted Wilcoxon column",
-            "present" if "p_holm_wilcoxon" in P.columns else "missing",
-            "present",
-            ok="p_holm_wilcoxon" in P.columns,
-        )
+        add("statistics", "O3 maximum |paired Cohen d|", round(max_o3, 3), "<=0.171",
+            ok=max_o3 <= 0.171 + 1e-12)
+        add("statistics", "Holm-adjusted Wilcoxon column",
+            "present" if "p_holm_wilcoxon" in P.columns else "missing", "present",
+            ok="p_holm_wilcoxon" in P.columns)
         B = pd.read_csv(b_path)
         add("statistics", "test triples", int(B.n_triples.iloc[0]), 886, ok=int(B.n_triples.iloc[0]) == 886)
         add("statistics", "ranking queries", int(B.n_queries.iloc[0]), 1772, ok=int(B.n_queries.iloc[0]) == 1772)
@@ -156,36 +135,22 @@ def main():
     else:
         add("statistics", "revised statistical tables", "missing", "present", ok=False)
 
-    # Exact per-query random-ranking baseline.
     r_path = first_existing(
         RES / "statistics" / "relation_lift_exact.csv",
         REF / "relation_lift_exact.csv",
     )
     if r_path is not None:
         R = pd.read_csv(r_path).set_index("relation")
-        expected_lift = {
-            "CAUSES": 8.9,
-            "HAS_EFFECT": 8.1,
-            "CONTAINS": 8.8,
-            "RELIEVES": 15.2,
-            "TREATS": 14.6,
-        }
+        expected_lift = {"CAUSES": 8.9, "HAS_EFFECT": 8.1, "CONTAINS": 8.8, "RELIEVES": 15.2, "TREATS": 14.6}
         for rel, target in expected_lift.items():
             got = float(R.loc[rel, "lift"])
             add("random_baseline", f"{rel} lift", round(got, 1), target, ok=abs(got - target) <= 0.2)
         well_sampled = R.drop(index="TREATS", errors="ignore")
-        add(
-            "random_baseline",
-            "largest well-sampled relation lift",
-            well_sampled.lift.idxmax(),
-            "RELIEVES",
-            ok=well_sampled.lift.idxmax() == "RELIEVES",
-        )
+        add("random_baseline", "largest well-sampled relation lift", well_sampled.lift.idxmax(), "RELIEVES",
+            ok=well_sampled.lift.idxmax() == "RELIEVES")
     else:
         add("random_baseline", "relation_lift_exact.csv", "missing", "present", ok=False)
 
-    # Annotation sensitivity. Strict mode requires the actual source-derived
-    # tables. Public mode verifies the manuscript's archived aggregate table.
     s_source = RES / "sensitivity" / "sensitivity_structure.csv"
     c_source = RES / "sensitivity" / "label_collisions.csv"
     if s_source.is_file() and c_source.is_file():
@@ -194,14 +159,8 @@ def main():
         source_note = "source-derived"
     elif args.strict_sensitivity:
         S = C = None
-        add(
-            "annotation_sensitivity",
-            "source-derived sensitivity tables",
-            "missing",
-            "required",
-            ok=False,
-            note="Place an authorised data/train.txt locally and rebuild S0/S1/S2 before strict audit.",
-        )
+        add("annotation_sensitivity", "source-derived sensitivity tables", "missing", "required", ok=False,
+            note="Place an authorised data/train.txt locally and rebuild S0/S1/S2 before strict audit.")
     else:
         s_ref = REF / "annotation_sensitivity_structure.csv"
         c_ref = REF / "annotation_collision_typesets_aggregate.csv"
@@ -231,33 +190,28 @@ def main():
             }
             for col, target in checks.items():
                 got = float(S.loc[condition, col])
-                add(
-                    "annotation_sensitivity",
-                    f"{condition}:{col}",
-                    got,
-                    target,
-                    ok=abs(got - target) < 1e-9,
-                    note=source_note,
-                )
+                add("annotation_sensitivity", f"{condition}:{col}", got, target,
+                    ok=abs(got - target) < 1e-9, note=source_note)
         if "total_mentions" in C.columns:
-            add("annotation_sensitivity", "multi-type surface forms", len(C), 102, ok=len(C) == 102, note=source_note)
-            add(
-                "annotation_sensitivity",
-                "mentions on multi-type forms",
-                int(C.total_mentions.sum()),
-                2412,
-                ok=int(C.total_mentions.sum()) == 2412,
-                note=source_note,
-            )
+            add("annotation_sensitivity", "multi-type surface forms", len(C), 102,
+                ok=len(C) == 102, note=source_note)
+            add("annotation_sensitivity", "mentions on multi-type forms", int(C.total_mentions.sum()), 2412,
+                ok=int(C.total_mentions.sum()) == 2412, note=source_note)
         else:
             total_forms = int(C.surface_forms.sum())
-            add("annotation_sensitivity", "multi-type surface forms", total_forms, 102, ok=total_forms == 102, note=source_note)
-            pair_counts = C.set_index("type_set").surface_forms.to_dict()
-            add("annotation_sensitivity", "SYM/CAU surface forms", int(pair_counts.get("SYM/CAU", -1)), 88, ok=pair_counts.get("SYM/CAU") == 88, note=source_note)
-            add("annotation_sensitivity", "PRE/HER surface forms", int(pair_counts.get("PRE/HER", -1)), 5, ok=pair_counts.get("PRE/HER") == 5, note=source_note)
+            add("annotation_sensitivity", "multi-type surface forms", total_forms, 102,
+                ok=total_forms == 102, note=source_note)
+            pair_counts = {
+                canonical_type_set(type_set): int(surface_forms)
+                for type_set, surface_forms in zip(C.type_set, C.surface_forms)
+            }
+            sym_cau = canonical_type_set("SYM/CAU")
+            pre_her = canonical_type_set("PRE/HER")
+            add("annotation_sensitivity", "SYM/CAU surface forms", int(pair_counts.get(sym_cau, -1)), 88,
+                ok=pair_counts.get(sym_cau) == 88, note=source_note)
+            add("annotation_sensitivity", "PRE/HER surface forms", int(pair_counts.get(pre_her, -1)), 5,
+                ok=pair_counts.get(pre_her) == 5, note=source_note)
 
-    # Link-prediction sensitivity. Prefer regenerated condition-specific files;
-    # otherwise verify the archived manuscript table in public mode.
     ref_link = REF / "annotation_sensitivity_linkpred.csv"
     ref_link_table = pd.read_csv(ref_link) if ref_link.is_file() and not args.strict_sensitivity else None
     for short in ("S0", "S1", "S2"):
@@ -285,22 +239,10 @@ def main():
         for model, (target_mean, target_sd) in EXPECTED_LINKPRED[short].items():
             got_m = float(T.loc[model, "MRR_mean"])
             got_s = float(T.loc[model, "MRR_sd"])
-            add(
-                "linkpred_sensitivity",
-                f"{short}:{model}:MRR",
-                round(got_m, 3),
-                target_mean,
-                ok=abs(got_m - target_mean) <= 0.0015,
-                note=note,
-            )
-            add(
-                "linkpred_sensitivity",
-                f"{short}:{model}:SD",
-                round(got_s, 3),
-                target_sd,
-                ok=abs(got_s - target_sd) <= 0.0015,
-                note=note,
-            )
+            add("linkpred_sensitivity", f"{short}:{model}:MRR", round(got_m, 3), target_mean,
+                ok=abs(got_m - target_mean) <= 0.0015, note=note)
+            add("linkpred_sensitivity", f"{short}:{model}:SD", round(got_s, 3), target_sd,
+                ok=abs(got_s - target_sd) <= 0.0015, note=note)
 
     out = pd.DataFrame(rows)
     OUT.parent.mkdir(exist_ok=True)
