@@ -1,18 +1,23 @@
 #!/usr/bin/env python3
-"""Orchestrate the complete KG-MMAI experiment and figure workflow.
+"""Run the KG-MMAI workflow in the order used by the revised manuscript.
 
-Default behaviour:
-    python run_experiments.py
-runs the complete manuscript workflow and verifies that every expected PNG/PDF
-figure has been written.
+Modes
+-----
+python run_experiments.py
+    Public-release workflow. Recomputes all experiments that do not require the
+    withheld raw BIO corpus, regenerates available figures, generates the
+    conceptual Figure 10, and verifies manuscript figure assets.
 
-Useful alternatives:
-    python run_experiments.py --original
-    python run_experiments.py --revision
-    python run_experiments.py --figures-only
-    python run_experiments.py --steps structure figures-structure
+python run_experiments.py --full-local
+    Full end-to-end workflow. Requires an authorised local data/train.txt,
+    rebuilds S0/S1/S2, reruns link prediction on all three graphs, and applies
+    strict manuscript-alignment checks.
 
-Author: LIJUNHUA
+python run_experiments.py --figures-only
+    Regenerate figures from result tables already present.
+
+The final manuscript uses Figures 1--10. Historical diagnostic plots created by
+Script 06 are redirected to figures/supplementary/ by figstyle.py.
 """
 
 from __future__ import annotations
@@ -39,34 +44,19 @@ class Step:
 
 STEPS = (
     Step("structure", "code/01_structural_analysis.py", "structural analysis"),
-    Step("link-prediction", "code/02_link_prediction.py", "link prediction"),
-    Step("robustness", "code/03_ranking_robustness.py", "ranking robustness"),
-    Step("statistics", "code/04_statistics.py", "original statistical analysis"),
-    Step("figures-structure", "code/05_figures_structure.py", "structural figures"),
-    Step("figures-results", "code/06_figures_results.py", "original result figures"),
-    Step("objective-ablation", "code/07_objective_ablation.py", "controlled objective ablation"),
-    Step("annotation-sensitivity", "code/08_annotation_sensitivity.py", "annotation audit and graph correction"),
-    Step("statistics-revised", "code/09_statistics_revised.py", "triple-level clustered statistics"),
-    Step("figures-revision", "code/10_figures_revision.py", "revision figures"),
+    Step("link-prediction", "code/02_link_prediction.py", "typed filtered link prediction"),
+    Step("robustness", "code/03_ranking_robustness.py", "training-budget robustness"),
+    Step("statistics-original", "code/04_statistics.py", "legacy/original statistical tables"),
+    Step("figures-structure", "code/05_figures_structure.py", "manuscript Figures 1--4"),
+    Step("figures-results", "code/06_figures_results.py", "manuscript Figures 5 and 9 + supplementary diagnostics"),
+    Step("objective-ablation", "code/07_objective_ablation.py", "72-run controlled objective ablation"),
+    Step("annotation-sensitivity", "code/08_annotation_sensitivity.py", "S0/S1/S2 annotation audit"),
+    Step("statistics-revised", "code/09_statistics_revised.py", "triple-level clustered inference and exact baseline"),
+    Step("figures-revision", "code/10_figures_revision.py", "manuscript Figures 6--8"),
+    Step("revision-audit", "code/12_revision_audit.py", "manuscript-to-result consistency gate"),
+    Step("figure-design", "code/13_figure_design.py", "manuscript Figure 10 design specification"),
 )
 STEP_BY_NAME = {step.name: step for step in STEPS}
-
-ORIGINAL_ANALYSIS = (
-    "structure",
-    "link-prediction",
-    "robustness",
-    "statistics",
-)
-ORIGINAL_FIGURE_STEPS = (
-    "figures-structure",
-    "figures-results",
-)
-REVISION_ANALYSIS = (
-    "annotation-sensitivity",
-    "objective-ablation",
-    "statistics-revised",
-)
-REVISION_FIGURE_STEPS = ("figures-revision",)
 
 SENSITIVITY_GRAPHS = {
     "S0": "results/sensitivity/edges_S0_as_annotated.csv",
@@ -74,253 +64,219 @@ SENSITIVITY_GRAPHS = {
     "S2": "results/sensitivity/edges_S2_majority_harmonised.csv",
 }
 
-CANONICAL_FIGURES = (
+MANUSCRIPT_FIGURES = (
     "fig01_schema",
     "fig02_extraction_funnel",
     "fig03_relation_composition",
     "fig04_threshold_sensitivity",
     "fig05_degree_structure",
-    "fig06_ranking_robustness",
-    "fig07_relation_difficulty",
-    "fig08_small_sample",
-    "fig09_graph_map",
-    "fig10_annotation_sensitivity",
-    "fig11_objective_ablation",
-    "fig12_relation_lift_exact",
-)
-
-REVISION_NUMBER_ALIASES = (
     "fig06_annotation_sensitivity",
     "fig07_objective_ablation",
     "fig08_relation_lift_exact",
+    "fig09_graph_map",
+    "fig10_kgmmai_design",
 )
-
-ORIGINAL_FIGURES = CANONICAL_FIGURES[:9]
-REVISION_FIGURES = CANONICAL_FIGURES[9:] + REVISION_NUMBER_ALIASES
-ALL_FIGURES = CANONICAL_FIGURES + REVISION_NUMBER_ALIASES
 FORMATS = ("png", "pdf")
 
 
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description=(
-            "Run KG-MMAI analyses and regenerate publication figures. "
-            "With no mode flag, the complete workflow is executed."
-        )
-    )
+def parse_args():
+    parser = argparse.ArgumentParser(description=__doc__)
     mode = parser.add_mutually_exclusive_group()
-    mode.add_argument(
-        "--steps",
-        nargs="+",
-        choices=tuple(STEP_BY_NAME),
-        help="Run only the named stages; no implicit prerequisite stages are added.",
-    )
-    mode.add_argument(
-        "--original",
-        action="store_true",
-        help="Run Scripts 01-06 and verify Figures 01-09.",
-    )
-    mode.add_argument(
-        "--revision",
-        action="store_true",
-        help="Run reviewer-requested Scripts 07-11 and verify the revised figures.",
-    )
-    mode.add_argument(
-        "--figures-only",
-        action="store_true",
-        help="Regenerate all figure groups from result files that already exist.",
-    )
-    mode.add_argument(
-        "--all",
-        action="store_true",
-        help="Run the complete workflow (same as invoking the runner with no mode flag).",
-    )
-    parser.add_argument(
-        "--continue-on-error",
-        action="store_true",
-        help="Continue to later stages after a failure; final exit status remains non-zero.",
-    )
+    mode.add_argument("--public", action="store_true",
+                      help="Run the public-release workflow (default).")
+    mode.add_argument("--full-local", action="store_true",
+                      help="Require local data/train.txt and regenerate S0/S1/S2 end to end.")
+    mode.add_argument("--revision", action="store_true",
+                      help="Run revision analyses; use raw corpus if locally available.")
+    mode.add_argument("--original", action="store_true",
+                      help="Run original structural/KGE analyses and Figures 1--5,9.")
+    mode.add_argument("--figures-only", action="store_true",
+                      help="Regenerate figures from existing result tables.")
+    mode.add_argument("--steps", nargs="+", choices=tuple(STEP_BY_NAME),
+                      help="Run only selected named stages; prerequisites are not added.")
+    parser.add_argument("--continue-on-error", action="store_true",
+                        help="Continue after failures; final exit status remains non-zero.")
+    parser.add_argument("--skip-figure-check", action="store_true",
+                        help="Do not verify manuscript PNG/PDF assets at the end.")
     return parser.parse_args()
 
 
-def run_command(name: str, description: str, command: list[str]) -> bool:
+def run_command(name, description, command):
     started = time.perf_counter()
-    print(f"\n[{name}] {description}", flush=True)
-    print("  $", " ".join(str(part) for part in command), flush=True)
+    print(f"\n=== {name} ===\n{description}")
     completed = subprocess.run(command, cwd=ROOT, check=False)
     elapsed = time.perf_counter() - started
     if completed.returncode == 0:
-        print(f"[{name}] completed in {elapsed:.1f} s", flush=True)
+        print(f"[{name}] completed in {elapsed:.1f} s")
         return True
-    print(
-        f"[{name}] FAILED with exit code {completed.returncode} after {elapsed:.1f} s",
-        file=sys.stderr,
-        flush=True,
-    )
+    print(f"[{name}] FAILED ({completed.returncode}) after {elapsed:.1f} s",
+          file=sys.stderr)
     return False
 
 
-def run_step(step: Step) -> bool:
+def run_step(name, extra=None):
+    step = STEP_BY_NAME[name]
     script = ROOT / step.script
-    if not script.exists():
-        print(f"[ERROR] Missing script: {script}", file=sys.stderr)
+    if not script.is_file():
+        print(f"[ERROR] missing script: {script}", file=sys.stderr)
         return False
-    return run_command(step.name, step.description, [sys.executable, str(script)])
+    command = [sys.executable, str(script)]
+    if extra:
+        command.extend(extra)
+    return run_command(step.name, step.description, command)
 
 
-def run_named_steps(names: tuple[str, ...], continue_on_error: bool) -> bool:
-    ok = True
-    for name in names:
-        passed = run_step(STEP_BY_NAME[name])
-        ok = passed and ok
-        if not passed and not continue_on_error:
-            return False
-    return ok
-
-
-def require_raw_corpus() -> bool:
-    raw_corpus = ROOT / "data" / "train.txt"
-    if raw_corpus.exists():
-        return True
-    print(
-        "[ERROR] The annotation-sensitivity workflow requires data/train.txt. "
-        "Place an authorised local copy at KG-MMAI_LIJUNHUA/data/train.txt "
-        "before running the full or revision workflow.",
-        file=sys.stderr,
-    )
-    return False
-
-
-def run_sensitivity_linkpred(condition: str, relative_edges: str) -> bool:
+def run_sensitivity_linkpred(condition, relative_edges):
     script = ROOT / "code" / "11_sensitivity_linkpred.py"
     edge_path = ROOT / relative_edges
-    if not script.exists():
-        print(f"[ERROR] Missing script: {script}", file=sys.stderr)
-        return False
-    if not edge_path.exists():
-        print(f"[ERROR] Missing corrected edge table: {edge_path}", file=sys.stderr)
+    if not script.is_file() or not edge_path.is_file():
+        print(f"[ERROR] missing sensitivity input for {condition}: {edge_path}",
+              file=sys.stderr)
         return False
     return run_command(
         f"sensitivity-linkpred-{condition}",
-        f"primary link prediction on annotation condition {condition}",
-        [
-            sys.executable,
-            str(script),
-            "--condition",
-            condition,
-            "--edges",
-            str(edge_path),
-        ],
+        f"60-epoch O3 link prediction on {condition}",
+        [sys.executable, str(script), "--condition", condition,
+         "--edges", str(edge_path)],
     )
 
 
-def run_sensitivity_suite(continue_on_error: bool) -> bool:
-    ok = True
-    for condition, edges in SENSITIVITY_GRAPHS.items():
-        passed = run_sensitivity_linkpred(condition, edges)
-        ok = passed and ok
-        if not passed and not continue_on_error:
-            return False
-    return ok
-
-
-def verify_figures(stems: tuple[str, ...]) -> bool:
+def verify_figures(stems=MANUSCRIPT_FIGURES):
     missing = []
+    print("\n=== figure-check ===")
     for stem in stems:
-        for ext in FORMATS:
-            path = FIG / f"{stem}.{ext}"
-            if not path.exists() or path.stat().st_size == 0:
-                missing.append(path.relative_to(ROOT))
-
-    print("\n[figure-check]")
+        paths = [FIG / f"{stem}.{ext}" for ext in FORMATS]
+        bad = [p for p in paths if not p.is_file() or p.stat().st_size == 0]
+        if bad:
+            missing.extend(bad)
+            print(f"MISS {stem}: " + ", ".join(p.name for p in bad))
+        else:
+            print(f"OK   {stem}.png / .pdf")
     if missing:
-        print("  Missing or empty expected figure files:", file=sys.stderr)
-        for path in missing:
-            print(f"    - {path}", file=sys.stderr)
+        print(f"[figure-check] {len(missing)} required asset(s) missing.", file=sys.stderr)
         return False
-
-    print(f"  verified {len(stems)} figure stems / {len(stems) * len(FORMATS)} files")
-    for stem in stems:
-        print(f"    OK  figures/{stem}.png + .pdf")
+    print(f"[figure-check] verified {len(stems)} manuscript figures / "
+          f"{len(stems)*len(FORMATS)} files.")
     return True
 
 
-def run_original(continue_on_error: bool) -> bool:
-    ok = run_named_steps(ORIGINAL_ANALYSIS, continue_on_error)
-    if not ok and not continue_on_error:
-        return False
-    figures_ok = run_named_steps(ORIGINAL_FIGURE_STEPS, continue_on_error)
-    ok = figures_ok and ok
-    return verify_figures(ORIGINAL_FIGURES) and ok
+def run_sequence(names, continue_on_error=False):
+    any_failed = False
+    for name in names:
+        ok = run_step(name)
+        if not ok:
+            any_failed = True
+            if not continue_on_error:
+                return False
+    return not any_failed
 
 
-def run_revision(continue_on_error: bool) -> bool:
-    if not require_raw_corpus():
-        return False
-
-    ok = run_named_steps(REVISION_ANALYSIS, continue_on_error)
-    if not ok and not continue_on_error:
-        return False
-
-    sensitivity_ok = run_sensitivity_suite(continue_on_error)
-    ok = sensitivity_ok and ok
-    if not sensitivity_ok and not continue_on_error:
-        return False
-
-    figures_ok = run_named_steps(REVISION_FIGURE_STEPS, continue_on_error)
-    ok = figures_ok and ok
-    return verify_figures(REVISION_FIGURES) and ok
+def public_workflow(continue_on_error=False):
+    # Does not invoke Script 08 because the public release intentionally omits
+    # the raw corpus. Figure 6 remains a committed publication asset unless the
+    # source-derived sensitivity tables are locally available.
+    names = (
+        "structure", "link-prediction", "robustness", "statistics-original",
+        "objective-ablation", "statistics-revised",
+        "figures-structure", "figures-results", "figures-revision",
+        "figure-design", "revision-audit",
+    )
+    return run_sequence(names, continue_on_error)
 
 
-def run_all(continue_on_error: bool) -> bool:
-    """Run all analyses first, then render and verify every publication figure."""
-    if not require_raw_corpus():
-        return False
+def revision_workflow(full_local=False, continue_on_error=False):
+    failed = False
+    raw = ROOT / "data" / "train.txt"
 
-    ok = run_named_steps(ORIGINAL_ANALYSIS, continue_on_error)
-    if not ok and not continue_on_error:
-        return False
+    if full_local or raw.is_file():
+        if not raw.is_file():
+            print(
+                "[ERROR] --full-local requires an authorised data/train.txt. "
+                "The public release intentionally excludes it.",
+                file=sys.stderr,
+            )
+            return False
+        if not run_step("annotation-sensitivity", ["--strict-manuscript"]):
+            if not continue_on_error:
+                return False
+            failed = True
+    else:
+        print(
+            "\n[annotation-sensitivity] SKIPPED: data/train.txt is intentionally "
+            "absent from the public release. The committed Figure 6 remains "
+            "available; use --full-local with an authorised copy for end-to-end regeneration."
+        )
 
-    revision_ok = run_named_steps(REVISION_ANALYSIS, continue_on_error)
-    ok = revision_ok and ok
-    if not revision_ok and not continue_on_error:
-        return False
+    for name in ("objective-ablation", "statistics-revised"):
+        if not run_step(name):
+            if not continue_on_error:
+                return False
+            failed = True
 
-    sensitivity_ok = run_sensitivity_suite(continue_on_error)
-    ok = sensitivity_ok and ok
-    if not sensitivity_ok and not continue_on_error:
-        return False
+    if raw.is_file():
+        for condition, edges in SENSITIVITY_GRAPHS.items():
+            if not run_sensitivity_linkpred(condition, edges):
+                if not continue_on_error:
+                    return False
+                failed = True
 
-    figure_steps = ORIGINAL_FIGURE_STEPS + REVISION_FIGURE_STEPS
-    figures_ok = run_named_steps(figure_steps, continue_on_error)
-    ok = figures_ok and ok
-    return verify_figures(ALL_FIGURES) and ok
+    for name in ("figures-revision", "figure-design"):
+        if not run_step(name):
+            if not continue_on_error:
+                return False
+            failed = True
+
+    audit_args = ["--strict-sensitivity"] if raw.is_file() else []
+    if not run_step("revision-audit", audit_args):
+        if not continue_on_error:
+            return False
+        failed = True
+    return not failed
 
 
-def run_figures_only(continue_on_error: bool) -> bool:
-    figure_steps = ORIGINAL_FIGURE_STEPS + REVISION_FIGURE_STEPS
-    ok = run_named_steps(figure_steps, continue_on_error)
-    return verify_figures(ALL_FIGURES) and ok
-
-
-def main() -> int:
+def main():
     args = parse_args()
-    print(f"KG-MMAI workflow | author: {__author__}")
-    print(f"repository root: {ROOT}")
+    print(f"KG-MMAI manuscript workflow | author: {__author__}")
 
     if args.steps:
-        ok = run_named_steps(tuple(args.steps), args.continue_on_error)
-        return 0 if ok else 1
-
-    if args.original:
-        ok = run_original(args.continue_on_error)
-    elif args.revision:
-        ok = run_revision(args.continue_on_error)
+        ok = run_sequence(args.steps, args.continue_on_error)
+        check = True
     elif args.figures_only:
-        ok = run_figures_only(args.continue_on_error)
+        ok = run_sequence(
+            ("figures-structure", "figures-results", "figures-revision", "figure-design"),
+            args.continue_on_error,
+        )
+        check = True
+    elif args.original:
+        ok = run_sequence(
+            ("structure", "link-prediction", "robustness", "statistics-original",
+             "figures-structure", "figures-results"),
+            args.continue_on_error,
+        )
+        check = False
+        if not args.skip_figure_check:
+            original_stems = MANUSCRIPT_FIGURES[:5] + ("fig09_graph_map",)
+            check = verify_figures(original_stems)
+    elif args.full_local:
+        ok = run_sequence(
+            ("structure", "link-prediction", "robustness", "statistics-original"),
+            args.continue_on_error,
+        )
+        if ok or args.continue_on_error:
+            ok = revision_workflow(True, args.continue_on_error) and ok
+        if ok or args.continue_on_error:
+            ok = run_sequence(("figures-structure", "figures-results"),
+                              args.continue_on_error) and ok
+        check = True
+    elif args.revision:
+        ok = revision_workflow(False, args.continue_on_error)
+        check = True
     else:
-        ok = run_all(args.continue_on_error)
+        ok = public_workflow(args.continue_on_error)
+        check = True
 
+    if check and not args.skip_figure_check:
+        ok = verify_figures() and ok
     return 0 if ok else 1
 
 
