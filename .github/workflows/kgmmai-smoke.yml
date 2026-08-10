@@ -24,8 +24,30 @@ jobs:
       - run: python -m pip install --upgrade pip
       - run: python -m pip install -r requirements.txt
       - name: Compile Python sources
-        run: python -m compileall -q code tests run_experiments.py
+        run: python -m compileall -q code tests run_experiments.py run_figures.py
       - name: Run deterministic tests
         run: python -m unittest discover -s tests -v
-      - name: Regenerate structural tables and Figures 1-4
-        run: python run_experiments.py --steps structure figures-structure --skip-figure-check
+      - name: Regenerate structural outputs
+        run: python code/01_structural_analysis.py
+      - name: Figure 1
+        run: python code/figures/fig01_schema.py
+      - name: Figure 2
+        run: python code/figures/fig02_extraction_funnel.py
+      - name: Figure 3
+        run: python code/figures/fig03_relation_composition.py
+      - name: Figure 4
+        run: python code/figures/fig04_threshold_sensitivity.py
+      - name: Figure 5
+        run: python code/figures/fig05_degree_structure.py
+      - name: Figure 6
+        run: python code/figures/fig06_annotation_sensitivity.py
+      - name: Figure 7
+        run: python code/figures/fig07_objective_ablation.py
+      - name: Figure 8
+        run: python code/figures/fig08_relation_lift_exact.py
+      - name: Figure 9
+        run: python code/figures/fig09_graph_map.py
+      - name: Figure 10
+        run: python code/figures/fig10_kgmmai_design.py
+      - name: Audit manuscript-aligned results
+        run: python code/12_revision_audit.py
