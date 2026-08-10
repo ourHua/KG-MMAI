@@ -14,6 +14,8 @@ import pandas as pd
 from _common import RES, REF, FIG, ACCENT, MUTED, TYPE_COLORS, choose, save_checked
 from labels_en import label as en_label
 S = pd.read_csv(choose(RES / 'sensitivity/sensitivity_structure.csv', REF / 'annotation_sensitivity_structure.csv'))
+if 'nodes' not in S.columns and 'core_entities' in S.columns:
+    S = S.rename(columns={'core_entities': 'nodes', 'core_triples': 'edges'})
 if (RES / 'sensitivity/sensitivity_hubs.csv').is_file():
     H = pd.read_csv(RES / 'sensitivity/sensitivity_hubs.csv')
     s0 = H[H.condition == 'S0_as_annotated'].sort_values('rank').head(10)
