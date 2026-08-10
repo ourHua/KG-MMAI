@@ -1,0 +1,12 @@
+# Local/private source material
+data/train.txt
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Local run artefacts
+logs/
+.DS_Store
