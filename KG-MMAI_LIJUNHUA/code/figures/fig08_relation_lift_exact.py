@@ -7,6 +7,8 @@ import numpy as np
 import pandas as pd
 from _common import RES, REF, FIG, INK, MUTED, REL_COLORS, choose, save_checked
 R = pd.read_csv(choose(RES / 'statistics/relation_lift_exact.csv', REF / 'relation_lift_exact.csv'))
+if 'mean_filtered_candidates' not in R.columns:
+    R['mean_filtered_candidates'] = (R.head_side_candidates + R.tail_side_candidates) / 2.0
 fig, ax = plt.subplots(1, 2, figsize=(9.4, 3.3))
 a = ax[0]
 a.scatter(R.mean_filtered_candidates, R.MRR, s=70, c=[REL_COLORS[r] for r in R.relation], zorder=3)
