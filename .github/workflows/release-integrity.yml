@@ -1,0 +1,59 @@
+name: release-integrity
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'KG-MMAI_LIJUNHUA/MANIFEST_SHA256.csv'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  check-release:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: KG-MMAI_LIJUNHUA
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: KG-MMAI_LIJUNHUA/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pytest cffconvert
+
+      - name: Refresh release manifest
+        run: python tools/update_manifest.py
+
+      - name: Verify manifest
+        run: python tools/verify_manifest.py
+
+      - name: Run tests
+        run: python -m pytest tests/ -q
+
+      - name: Run manuscript audit
+        run: python code/12_revision_audit.py
+
+      - name: Validate citation metadata
+        run: cffconvert --validate -i CITATION.cff
+
+      - name: Commit refreshed manifest
+        run: |
+          if git diff --quiet -- MANIFEST_SHA256.csv; then
+            echo 'Manifest already current.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add MANIFEST_SHA256.csv
+          git commit -m 'Refresh release SHA-256 manifest'
+          git push
