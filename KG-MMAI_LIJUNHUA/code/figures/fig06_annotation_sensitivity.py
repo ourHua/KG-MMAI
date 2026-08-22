@@ -21,7 +21,7 @@ if "nodes" not in structure.columns:
 if "edges" not in structure.columns:
     structure["edges"] = structure["core_triples"]
 
-order = ["S0_as_annotated", "S1_expert_corrected", "S2_majority_harmonised"]
+order = ["S0_as_annotated", "S1_adjudicated", "S2_majority_harmonised"]
 structure = structure.set_index("condition").loc[order].reset_index()
 
 hubs_path = RES / "sensitivity" / "sensitivity_hubs.csv"
@@ -52,7 +52,7 @@ fig.subplots_adjust(left=0.055, right=0.985, top=0.84, bottom=0.18, wspace=0.52)
 
 short = {
     "S0_as_annotated": "S0\nas annotated",
-    "S1_expert_corrected": "S1\nexpert",
+    "S1_adjudicated": "S1\nadjudicated",
     "S2_majority_harmonised": "S2\nmajority",
 }
 x = np.arange(len(structure))
