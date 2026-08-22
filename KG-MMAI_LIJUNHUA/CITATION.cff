@@ -24,6 +24,11 @@ keywords:
   - reproducible research
   - statistical robustness
 references:
-  - type: dataset
+  - type: data
     title: "TCMNER dataset"
+    authors:
+      - family-names: "Cao"
+        given-names: "Shan"
+      - family-names: "Wu"
+        given-names: "Qingfeng"
     url: "https://github.com/cshan-github/TCM_NER_datasets"
