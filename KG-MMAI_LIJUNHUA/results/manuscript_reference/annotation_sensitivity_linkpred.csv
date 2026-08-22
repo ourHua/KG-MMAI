@@ -3,10 +3,10 @@ S0_as_annotated,RotatE,0.212,0.014
 S0_as_annotated,TransE,0.193,0.011
 S0_as_annotated,DistMult,0.186,0.016
 S0_as_annotated,ComplEx,0.183,0.014
-S1_expert_corrected,RotatE,0.216,0.004
-S1_expert_corrected,TransE,0.195,0.011
-S1_expert_corrected,DistMult,0.169,0.007
-S1_expert_corrected,ComplEx,0.172,0.004
+S1_adjudicated,RotatE,0.216,0.004
+S1_adjudicated,TransE,0.195,0.011
+S1_adjudicated,DistMult,0.169,0.007
+S1_adjudicated,ComplEx,0.172,0.004
 S2_majority_harmonised,RotatE,0.213,0.004
 S2_majority_harmonised,TransE,0.200,0.008
 S2_majority_harmonised,DistMult,0.191,0.005
