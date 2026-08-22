@@ -11,6 +11,7 @@ EXPECTED_CONDITIONS = (
     "S1_adjudicated",
     "S2_majority_harmonised",
 )
+OLD_S1_CONDITION = "S1_" + "expert_corrected"
 
 
 def test_old_s1_name_is_absent():
@@ -21,7 +22,7 @@ def test_old_s1_name_is_absent():
     for path in checked:
         if any(part in {".git", ".venv", "venv", "__pycache__"} for part in path.parts):
             continue
-        if "S1_expert_corrected" in path.read_text(encoding="utf-8", errors="ignore"):
+        if OLD_S1_CONDITION in path.read_text(encoding="utf-8", errors="ignore"):
             offenders.append(path.relative_to(ROOT).as_posix())
     assert not offenders, f"old S1 condition name remains in: {offenders}"
 
