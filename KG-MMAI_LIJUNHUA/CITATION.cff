@@ -7,13 +7,14 @@ authors:
     given-names: "Junhua"
   - family-names: "So"
     given-names: "Gilja"
-year: 2026
-version: "1.1.0"
+date-released: 2026-08-23
+version: "1.2.0"
+license: MIT
 repository-code: "https://github.com/ourHua/KG-MMAI"
 identifiers:
   - type: doi
     value: "10.5281/zenodo.21731543"
-abstract: "Manuscript-aligned Python workflow for weakly supervised TCM knowledge-graph construction, structural auditing, annotation sensitivity, typed link prediction, controlled training-objective ablation, clustered statistical inference, exact random-ranking normalisation, and publication figure generation."
+abstract: "Reproducibility package for the KG-MMAI knowledge-layer study, including graph construction and auditing, annotation sensitivity, typed link prediction, controlled objective ablation, statistical analysis, and manuscript figure generation."
 keywords:
   - knowledge graph
   - traditional Chinese medicine
@@ -22,3 +23,7 @@ keywords:
   - link prediction
   - reproducible research
   - statistical robustness
+references:
+  - type: dataset
+    title: "TCMNER dataset"
+    url: "https://github.com/cshan-github/TCM_NER_datasets"
