@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""Re-run the primary link-prediction protocol on a corrected graph.
+"""Re-run the primary link-prediction protocol on one sensitivity graph.
 
-The edge table is selected before Script 07 imports ``kge_core``. This is
-important: the sensitivity experiment must actually train and evaluate on the
-S0/S1/S2 rebuilt graph rather than silently reusing ``data/edges.csv``.
+The edge table is selected before Script 07 imports ``kge_core``.  This keeps
+the sensitivity run tied to the rebuilt S0/S1/S2 graph instead of silently
+falling back to ``data/edges.csv``.
 
 Examples
 --------
 python code/11_sensitivity_linkpred.py --condition S1 \
-  --edges results/sensitivity/edges_S1_expert_corrected.csv
+  --edges results/sensitivity/edges_S1_adjudicated.csv
 python code/11_sensitivity_linkpred.py --condition S2 \
   --edges results/sensitivity/edges_S2_majority_harmonised.csv
 """
@@ -45,11 +45,13 @@ def load_ablation(edges_path):
     if not path.exists():
         raise FileNotFoundError(path)
 
-    # Script 07 reads KG_EDGES during module import and rebuilds the shared KGE
-    # context before training begins.
+    # Script 07 reads KG_EDGES during import and builds the KGE context from it.
     os.environ["KG_EDGES"] = str(path)
     sys.path.insert(0, str(HERE))
-    spec = importlib.util.spec_from_file_location("objective_ablation_sensitivity", HERE / "07_objective_ablation.py")
+    spec = importlib.util.spec_from_file_location(
+        "objective_ablation_sensitivity",
+        HERE / "07_objective_ablation.py",
+    )
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module, path
@@ -65,12 +67,14 @@ def main():
         for seed in ablation.SEEDS:
             model = ablation.train_objective(model_name, seed, 60, "selfadv")
             metrics, _, _ = ablation.evaluate_fast(model)
-            rows.append({
-                "condition": args.condition,
-                "model": model_name,
-                "seed": seed,
-                **metrics,
-            })
+            rows.append(
+                {
+                    "condition": args.condition,
+                    "model": model_name,
+                    "seed": seed,
+                    **metrics,
+                }
+            )
             print(
                 f"  {args.condition} {model_name:9s} seed {seed:5d} "
                 f"MRR {metrics['MRR']:.4f}",
