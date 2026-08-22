@@ -3,7 +3,7 @@
 
 This reviewer-requested analysis starts from the local BIO-tagged corpus,
 identifies surface forms assigned to more than one entity type, and rebuilds
-the graph under S0 (as annotated), S1 (expert correction of the five PRE/HER
+the graph under S0 (as annotated), S1 (adjudication of the five PRE/HER
 collisions), and S2 (majority harmonisation of all multi-type forms).
 
 The raw corpus is intentionally not redistributed. Place an authorised local
@@ -41,8 +41,8 @@ SCHEMA = {
 RULES = {(h, t): r for r, (h, t) in SCHEMA.items()}
 TYPES = ("SYM", "CAU", "PRE", "HER", "EFF")
 
-# Expert adjudication of the five surface forms carrying both PRE and HER.
-EXPERT_MAP = {
+# Adjudication of the five surface forms carrying both PRE and HER.
+ADJUDICATED_MAP = {
     "苍术": "HER",        # Atractylodis Rhizoma
     "麦门冬": "HER",      # Ophiopogonis Radix
     "橘皮": "HER",        # Citri Reticulatae Pericarpium
@@ -194,7 +194,7 @@ MANUSCRIPT_EXPECTED = {
         "unique_entities": 8024, "all_triples": 48566, "nodes": 1905,
         "edges": 9544, "largest_component_pct": 99.48, "max_degree": 225,
     },
-    "S1_expert_corrected": {
+    "S1_adjudicated": {
         "unique_entities": 8019, "all_triples": 48401, "nodes": 1903,
         "edges": 9440, "largest_component_pct": 99.47, "max_degree": 225,
     },
@@ -270,7 +270,7 @@ if __name__ == "__main__":
     majority_map = {n: c.most_common(1)[0][0] for n, c in coll.items()}
     conditions = {
         "S0_as_annotated": {},
-        "S1_expert_corrected": EXPERT_MAP,
+        "S1_adjudicated": ADJUDICATED_MAP,
         "S2_majority_harmonised": majority_map,
     }
 
@@ -300,7 +300,7 @@ if __name__ == "__main__":
         profile_table.condition == "S0_as_annotated", "edges"
     ].iloc[0])
     changes = []
-    for condition in ("S1_expert_corrected", "S2_majority_harmonised"):
+    for condition in ("S1_adjudicated", "S2_majority_harmonised"):
         current = edge_sets[condition]
         current_edges = int(profile_table.loc[
             profile_table.condition == condition, "edges"
