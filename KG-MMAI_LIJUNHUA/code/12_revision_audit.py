@@ -30,7 +30,7 @@ EXPECTED_60 = {
 }
 EXPECTED_STRUCTURE = {
     "S0_as_annotated": (8024, 48566, 1905, 9544, 99.48, 225),
-    "S1_expert_corrected": (8019, 48401, 1903, 9440, 99.47, 225),
+    "S1_adjudicated": (8019, 48401, 1903, 9440, 99.47, 225),
     "S2_majority_harmonised": (7922, 48978, 1946, 9908, 99.23, 250),
 }
 EXPECTED_LINKPRED = {
@@ -43,7 +43,7 @@ EXPECTED_LINKPRED = {
 }
 COND_NAMES = {
     "S0": "S0_as_annotated",
-    "S1": "S1_expert_corrected",
+    "S1": "S1_adjudicated",
     "S2": "S2_majority_harmonised",
 }
 
