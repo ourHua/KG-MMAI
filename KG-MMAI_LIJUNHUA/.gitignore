@@ -4,9 +4,12 @@ data/train.txt
 # Python
 __pycache__/
 *.py[cod]
+.pytest_cache/
 .venv/
 venv/
 
-# Local run artefacts
+# IDE and local run artefacts
+.idea/
 logs/
+results/revision_claims.csv
 .DS_Store
