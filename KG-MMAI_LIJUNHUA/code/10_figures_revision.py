@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Regenerate the revised-manuscript Figures 6--8.
+"""Generate revised-manuscript Figures 6--8.
 
-The figure-specific implementations live in ``code/figures``.  This numbered
-script is kept as a workflow entry point for older commands and simply runs the
-three canonical figure scripts in manuscript order.
+The actual plotting code is kept in ``code/figures``. This script remains as a
+numbered workflow entry point and runs the three figure scripts in manuscript
+order.
 """
 
 from __future__ import annotations
