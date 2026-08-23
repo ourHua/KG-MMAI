@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-"""Re-run the primary link-prediction protocol on one sensitivity graph.
+"""Run the main link-prediction protocol on one sensitivity graph.
 
-The edge table is selected before Script 07 imports ``kge_core``.  This keeps
-the sensitivity run tied to the rebuilt S0/S1/S2 graph instead of silently
-falling back to ``data/edges.csv``.
+The edge file is selected before Script 07 imports ``kge_core`` so the run uses
+the rebuilt S0/S1/S2 graph rather than the default ``data/edges.csv``.
 
 Examples
 --------
